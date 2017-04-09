@@ -290,6 +290,7 @@ def mainGame(movementInfo):
             if showImage:
                 img = Image.open('ss.jpg')
                 img.show()
+                showImage = False
             print "crash"
             return {
                 'y': playery,
