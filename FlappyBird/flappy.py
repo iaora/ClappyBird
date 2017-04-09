@@ -4,7 +4,17 @@ import sys
 #sound
 import pyaudio, audioop, wave
 import pygame
+import pygame.camera
+from PIL import Image
 from pygame.locals import *
+
+# ======== Picture ========
+
+pygame.camera.init()
+pygame.camera.list_cameras() #Camera detected or not
+cam = pygame.camera.Camera("/dev/video0",(640,480))
+cam.start()
+
 
 # ======== Sound ==========
 
@@ -244,6 +254,9 @@ def mainGame(movementInfo):
     playerFlapAcc =  -4   # players speed on flapping
     playerFlapped = False # True when player flaps
 
+    #flag for showing image
+    showImage = False
+
 
     while True:
         for event in pygame.event.get():
@@ -254,8 +267,18 @@ def mainGame(movementInfo):
         data = stream.read(CHUNK)
         rms = audioop.rms(data, 2)    # here's where you calculate the volume
         print rms
+        if rms > 3000:
+            playerFlapAcc = -2
+        if rms > 6000:
+            playerFlapAcc = -6
+        if rms > 8000:
+            playerFlapAcc = -9
+        if rms > 20000:
+            showImage = True
+            img = cam.get_image()
+            pygame.image.save(img,"ss.jpg")
         
-        if playery > -2 * IMAGES['player'][0].get_height() and rms > 2000:
+        if playery > -2 * IMAGES['player'][0].get_height() and rms > 3000:
             playerVelY = playerFlapAcc
             playerFlapped = True
             SOUNDS['wing'].play()
@@ -264,6 +287,10 @@ def mainGame(movementInfo):
         crashTest = checkCrash({'x': playerx, 'y': playery, 'index': playerIndex},
                                upperPipes, lowerPipes)
         if crashTest[0]:
+            if showImage:
+                img = Image.open('ss.jpg')
+                img.show()
+            print "crash"
             return {
                 'y': playery,
                 'groundCrash': crashTest[1],
