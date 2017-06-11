@@ -18,6 +18,11 @@ cam.start()
 
 # ======== Sound ==========
 
+#Get the average threshold.. which is my point for no noise
+AVG_THRESHOLD = 0
+#number of iterations to find the avg
+NUMTEST = 10
+
 CHUNK = 1024
 FORMAT = pyaudio.paInt16
 CHANNELS = 2
@@ -32,6 +37,7 @@ stream = p.open(format=FORMAT,
                 rate=RATE,
                 input=True,
                 frames_per_buffer=CHUNK)
+
 
 # ======== End Sound ======
 
@@ -256,7 +262,9 @@ def mainGame(movementInfo):
 
     #flag for showing image
     showImage = False
-
+    takeImage = False
+    AVG_THRESHOLD = getSoundAvg()
+    
 
     while True:
         for event in pygame.event.get():
@@ -266,19 +274,20 @@ def mainGame(movementInfo):
             #if event.type == KEYDOWN and (event.key == K_SPACE or event.key == K_UP):
         data = stream.read(CHUNK)
         rms = audioop.rms(data, 2)    # here's where you calculate the volume
-        print rms
-        if rms > 3000:
+        if rms > AVG_THRESHOLD+2000:
             playerFlapAcc = -2
-        if rms > 6000:
+        if rms > AVG_THRESHOLD+3000:
             playerFlapAcc = -6
-        if rms > 8000:
+        if rms > AVG_THRESHOLD+4000:
             playerFlapAcc = -9
-        if rms > 20000:
+        if rms > AVG_THRESHOLD+7000:
             showImage = True
-            img = cam.get_image()
-            pygame.image.save(img,"ss.jpg")
+            if not takeImage:
+                img = cam.get_image()
+                pygame.image.save(img,"ss.jpg")
         
-        if playery > -2 * IMAGES['player'][0].get_height() and rms > 3000:
+        if playery > -2 * IMAGES['player'][0].get_height() and rms > AVG_THRESHOLD+2000:
+            print rms
             playerVelY = playerFlapAcc
             playerFlapped = True
             SOUNDS['wing'].play()
@@ -505,6 +514,15 @@ def getHitmask(image):
         for y in xrange(image.get_height()):
             mask[x].append(bool(image.get_at((x,y))[3]))
     return mask
+
+def getSoundAvg():
+    AVG_THRESHOLD = 0
+    for i in range(NUMTEST):
+        data = stream.read(CHUNK)
+        rms = audioop.rms(data, 2)    # here's where you calculate the volume
+        AVG_THRESHOLD += rms
+    print "AVERAGE: ",AVG_THRESHOLD/NUMTEST
+    return AVG_THRESHOLD/NUMTEST
 
 
 if __name__ == '__main__':
